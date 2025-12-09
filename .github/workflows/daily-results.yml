@@ -10,7 +10,7 @@ on:
 env:
   DA_SLEEP: "1.0"
   DA_MAX_EVENTS: "0"
-  DA_FORCE_MIRROR: "false"
+  DA_FORCE_MIRROR: "true"
 
 jobs:
   scrape-and-email:
