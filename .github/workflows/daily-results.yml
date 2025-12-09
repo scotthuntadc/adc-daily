@@ -1,0 +1,54 @@
+name: Daily DartsAtlas Results
+
+on:
+  schedule:
+    # Run at 8:00 AM UK time (7:00 or 8:00 UTC depending on BST/GMT)
+    # Using 7:00 UTC to account for BST (British Summer Time)
+    - cron: '0 7 * * *'
+  workflow_dispatch:  # Allow manual triggers for testing
+
+env:
+  DA_SLEEP: "1.0"
+  DA_MAX_EVENTS: "0"
+  DA_FORCE_MIRROR: "false"
+
+jobs:
+  scrape-and-email:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run scraper
+        run: |
+          python dartsatlas_daily_results.py --outdir output --social-per-region yes
+
+      - name: Send email with results
+        env:
+          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        run: |
+          python send_results_email.py
+
+      - name: Upload results as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-results-${{ github.run_id }}
+          path: output/
+          retention-days: 30
